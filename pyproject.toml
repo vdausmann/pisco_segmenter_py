@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pisco-segmenter"
+name = "pisco_segmenter_py"
 version = "0.1.0"
 description = "PISCO image segmentation pipeline"
 readme = "README.md"
@@ -21,3 +21,6 @@ dependencies = [
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["pisco_segmenter*"]
+
+[tool.setuptools.package-data]
+"pisco_segmenter.models" = ["*.pth"]

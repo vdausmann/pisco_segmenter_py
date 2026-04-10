@@ -1,10 +1,14 @@
-# pisco-segmenter
+# pisco_segmenter_py
 
 Standalone, pip-installable segmentation package used by `process_pisco_profiles`.
 
 ## Install
 
 ```bash
+# after publishing on PyPI
+pip install pisco_segmenter_py
+
+# local development install
 pip install -e .
 ```
 
