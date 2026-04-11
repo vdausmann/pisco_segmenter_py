@@ -6,7 +6,6 @@ import csv
 from threading import Thread
 from multiprocessing import Queue, Manager, Process, Value
 import logging
-from PIL import Image
 from tqdm import tqdm
 
 from .reader import run_reader, ReaderOutput, profiled_run_reader
@@ -86,44 +85,6 @@ def save_detection_settings_to_csv(settings, file_path, src_path):
 
 ### write file checking function!!
 
-def is_valid_image(file_path: str, min_size: int = 1024) -> bool:
-    """
-    Fast validation of image files to detect corruption.
-    
-    Checks if a file is a valid image by:
-    1. Verifying file size (minimum 1KB)
-    2. Using PIL to validate image structure and integrity
-    3. Falling back to cv2 if PIL fails
-    
-    Args:
-        file_path (str): Path to the image file
-        min_size (int): Minimum file size in bytes (default 1KB)
-    
-    Returns:
-        bool: True if file is a valid image, False if corrupted or invalid
-    """
-    try:
-        # Quick size check - skip obviously empty/truncated files
-        if os.path.getsize(file_path) < min_size:
-            return False
-        
-        # Try PIL for fast validation
-        try:
-            with Image.open(file_path) as img:
-                img.verify()  # This is faster than imghdr and catches most corruption
-            return True
-        except Exception as pil_error:
-            # Fallback to cv2 as secondary check
-            try:
-                img_cv = cv.imread(file_path)
-                return img_cv is not None
-            except Exception as cv_error:
-                logging.warning(f"Corrupted image detected: {file_path}")
-                return False
-    except Exception as e:
-        logging.warning(f"Error validating {file_path}: {e}")
-        return False
-
 def timesort(file):
     """
     Extract a timestamp from a filename for sorting purposes.
@@ -194,26 +155,14 @@ def run_segmenter(src_path: str, save_path: str, deconvolution: bool):
     files = []
     segmented_files = os.listdir(data_path)
     segmented_files = [os.path.splitext(name)[0] for name in segmented_files]
-    print('checking files...')
-    corrupt_files = []
-    for file in tqdm(files_unsorted, desc="Validating images", unit="file"):
+    for file in files_unsorted:
         if os.path.splitext(os.path.basename(file))[0] in segmented_files:
             continue
         elif file.endswith('.png') or file.endswith('.jpg') or file.endswith('.tif'):
-            if is_valid_image(file):
-                files.append(file)
-            else:
-                corrupt_files.append(file)
-    
-    if corrupt_files:
-        print(f'WARNING: Skipped {len(corrupt_files)} corrupted image files')
-        for corrupt_file in corrupt_files[:5]:  # Show first 5
-            print(f'  - {os.path.basename(corrupt_file)}')
-        if len(corrupt_files) > 5:
-            print(f'  ... and {len(corrupt_files) - 5} more')
+            files.append(file)
     
     #post message about the status of already segmented images
-    print(f'{len(segmented_files)} of {len(files)} images already segmented')
+    print(f'{len(segmented_files)} already segmented; {len(files)} candidate images queued')
     if len(files) == 0:
         print("No images found to segment. Exiting...")
         logging.info("No images found to segment. Exiting...")

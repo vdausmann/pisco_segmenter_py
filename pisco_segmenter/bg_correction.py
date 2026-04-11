@@ -85,17 +85,17 @@ def correct_img(
             output.put(([], [], [0, 0], 'TIMEOUT'))
             return
     
-    # Check if image at img_index is None (corrupted/failed to load)
-    if img_index >= len(input.images) or input.images[img_index] is None:
-        print(f'Skipping corrupted/missing image at index {img_index}')
-        output.put(([], [], [0, 0], 'CORRUPTED'))
-        return
-    
     try:
         img, fn = input.images[img_index]
     except (IndexError, TypeError) as e:
         print(f'Error accessing image {img_index}: {e}')
         output.put(([], [], [0, 0], 'ERROR'))
+        return
+
+    # Reader marks unreadable files explicitly as (None, fn), so skip them immediately.
+    if img is None:
+        print(f'Skipping corrupted/missing image at index {img_index}: {fn}')
+        output.put(([], [], [0, 0], fn))
         return
     
     mean = np.mean(img)

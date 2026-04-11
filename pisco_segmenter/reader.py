@@ -76,17 +76,29 @@ def read_img(output: ReaderOutput, input, thread_index=0):
         # Check if the file size is 0 bytes
         if os.path.getsize(file) == 0:
             print(f'Thread {thread_index}: File {file} is an empty image file')
+            output.add_output(None, fn, img_index)
             return
 
-        img = cv.imread(file, cv.IMREAD_GRAYSCALE)
+        img = None
+        try:
+            with Image.open(file) as pil_img:
+                img = np.array(pil_img.convert("L"))
+        except Exception as pil_error:
+            try:
+                img = cv.imread(file, cv.IMREAD_GRAYSCALE)
+            except Exception:
+                img = None
+
         if img is None:
-            print(f"Thread {thread_index}: Failed to read image {file}")
+            print(f"Thread {thread_index}: Failed to read image {file}; skipping")
+            output.add_output(None, fn, img_index)
             return
-            
+
         img = cv.resize(img, (2560, 2560))
         output.add_output(img, fn, img_index)
     except Exception as e:
         print(f'Thread {thread_index}: Exception occurred reading {file}: {str(e)}')
+        output.add_output(None, fn, img_index)
         return
 
 def run_reader(files, output: ReaderOutput, n_threads: int, resize:bool):
